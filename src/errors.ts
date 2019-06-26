@@ -1,4 +1,3 @@
-
 // https://rclayton.silvrback.com/custom-errors-in-node-js
 class InternalError extends Error {
   public type?: string

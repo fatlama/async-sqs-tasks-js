@@ -2,7 +2,6 @@ import * as AWS from 'aws-sdk'
 import * as AWSMock from 'aws-sdk-mock'
 import * as uuid from 'uuid'
 import { AsyncTasksClient, RegisterOperationInput } from '../client'
-import { QueueNotRegistered } from '../errors'
 
 describe('AsyncTasksClient', () => {
   let client: AsyncTasksClient
@@ -76,18 +75,21 @@ describe('AsyncTasksClient', () => {
 
     it('requires an operationName', () => {
       expect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         client.registerOperation({ ...exampleRegisterOperationInput, operationName: null } as any)
       }).toThrowError(TypeError)
     })
 
     it('requires a validate method', () => {
       expect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         client.registerOperation({ ...exampleRegisterOperationInput, validate: null } as any)
       }).toThrowError(TypeError)
     })
 
     it('requires a handle method', () => {
       expect(() => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         client.registerOperation({ ...exampleRegisterOperationInput, handle: null } as any)
       }).toThrowError(TypeError)
     })
