@@ -1,0 +1,115 @@
+# Javascript Node CircleCI 2.1 configuration file
+#
+# Check https://circleci.com/docs/2.1/language-javascript/ for more details
+#
+version: 2.1
+
+defaults: &defaults
+  working_directory: ~/repo
+  docker:
+    - image: circleci/node:dubnium
+
+commands:
+  restore_package_cache:
+    description: "Restore dependencies from the cache"
+    steps:
+      - restore_cache:
+          key: v1-dependencies-{{ checksum "package.json" }}
+
+jobs:
+  install_dependencies:
+    <<: *defaults  
+    steps:
+      - checkout
+      - run: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/.npmrc
+      - restore_package_cache
+      - run: yarn install
+      - run:
+          name: Ensure the correct yarn.lock was committed
+          command: |
+            set -e
+            test -z "$(git status --porcelain)"
+      - save_cache:
+          key: v1-dependencies-{{ checksum "package.json" }}
+          paths:
+            - node_modules
+  lint:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_package_cache
+      - run:
+          name: Run lint
+          command: yarn lint
+  test:
+    <<: *defaults  
+    steps:
+      - checkout
+      - restore_package_cache
+      - run:
+          name: Run tests
+          command: yarn test
+      - run:
+          name: Report coverage
+          command: ./node_modules/.bin/codecov
+  build_js:
+    <<: *defaults
+    steps:
+      - checkout
+      - restore_package_cache
+      - run:
+          name: Run tests
+          command: yarn build
+      - run:
+          name: Report coverage
+          command: ./node_modules/.bin/codecov
+      - persist_to_workspace:
+          root: ~/repo
+          paths:
+            - dist
+            - package.json
+            - yarn.lock
+  npm_publish:
+    <<: *defaults
+    steps:
+      - attach_workspace:
+          at: ~/repo
+      - restore_package_cache
+      - run:
+          name: Authenticate with registry
+          command: echo "//registry.npmjs.org/:_authToken=$NPM_TOKEN" > ~/repo/.npmrc
+      - run:
+          name: Publish package
+          command: yarn publish
+workflows:
+  version: 2
+  test-deploy:
+    jobs:
+      - install_dependencies:
+          context: global
+      - lint:
+          context: global
+          requires:
+            - install_dependencies
+      - test:
+          context: global
+          requires:
+            - install_dependencies
+      - confirm_publish:
+          type: approval
+          requires:
+            - test
+            - lint
+          filters:
+            tags:
+              # Require a tag that matches a semantic version
+              # Acceptable examples: v10.0.0, v0.1.0-PRERELEASE
+              only: /^v[0-9]+\.[0-9]+\.[0-9]+.*/
+      - build_js:
+          context: global
+          requires:
+            - confirm_publish
+      - npm_publish:
+          context: global
+          requires:
+            - build_js

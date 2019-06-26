@@ -1,0 +1,64 @@
+{
+  "name": "@fatlama/async-sqs-tasks",
+  "version": "1.0.0",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "repository": "github.com/fatlama/async-sqs-tasks-js",
+  "author": "Fat Llama",
+  "license": "UNLICENSED",
+  "files": [
+    "dist/**/*"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist coverage tsconfig.tsbuildinfo .eslintcache",
+    "format": "prettier --parser typescript --write src/**/*.ts",
+    "lint": "tsc --noEmit && eslint --cache --ext .ts src",
+    "release": "yarn clean && yarn build && yarn test && yarn lint",
+    "test": "jest"
+  },
+  "dependencies": {
+  },
+  "devDependencies": {
+    "@fatlama/eslint-config-base": "^1.1.0",
+    "@fatlama/eslint-config-typescript": "^1.1.0",
+    "@types/jest": "^24.0.13",
+    "@typescript-eslint/eslint-plugin": "^1.9.0",
+    "@typescript-eslint/parser": "^1.9.0",
+    "codecov": "^3.5.0",
+    "eslint": "^5.16.0",
+    "eslint-config-prettier": "^4.3.0",
+    "eslint-config-standard": "^12.0.0",
+    "eslint-import-resolver-typescript": "^1.1.1",
+    "eslint-plugin-eslint-comments": "^3.1.1",
+    "eslint-plugin-import": "^2.17.3",
+    "eslint-plugin-node": "^9.1.0",
+    "eslint-plugin-prettier": "^3.1.0",
+    "eslint-plugin-promise": "^4.1.1",
+    "eslint-plugin-standard": "^4.0.0",
+    "eslint-plugin-unicorn": "^8.0.2",
+    "jest": "^24.8.0",
+    "prettier": "^1.17.1",
+    "standard": "^12.0.1",
+    "ts-jest": "^24.0.2",
+    "typescript": "^3.4.5"
+  },
+  "jest": {
+    "coverageDirectory": "./coverage/",
+    "collectCoverage": true,
+    "collectCoverageFrom": [
+      "**/*.ts"
+    ],
+    "transform": {
+      ".ts$": "ts-jest"
+    },
+    "testEnvironment": "node",
+    "testRegex": ".*\\.test\\.ts$",
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json",
+      "node"
+    ]
+  }
+}
