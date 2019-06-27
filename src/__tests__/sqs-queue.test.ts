@@ -6,6 +6,7 @@ import { SQSQueue } from '../sqs-queue'
 describe('SQSQueue', () => {
   const queueUrl = 'https://foobar.com/my-example-queue'
   let sqsClient: AWS.SQS
+  let deleteSpy: jest.SpyInstance
   let sendSpy: jest.SpyInstance
   let receiveSpy: jest.SpyInstance
   let queue: SQSQueue
@@ -17,12 +18,14 @@ describe('SQSQueue', () => {
 
   beforeEach(() => {
     AWSMock.setSDKInstance(AWS)
-    AWSMock.mock('SQS', 'sendMessage', { MessageId: uuid.v4() })
+    AWSMock.mock('SQS', 'deleteMessage', {})
     AWSMock.mock('SQS', 'receiveMessage', { Messages: [exampleMessage] })
+    AWSMock.mock('SQS', 'sendMessage', { MessageId: uuid.v4() })
 
     sqsClient = new AWS.SQS({ region: 'test-1' })
     queue = new SQSQueue({ queueUrl, sqsClient })
 
+    deleteSpy = jest.spyOn(sqsClient, 'deleteMessage')
     sendSpy = jest.spyOn(sqsClient, 'sendMessage')
     receiveSpy = jest.spyOn(sqsClient, 'receiveMessage')
   })
@@ -74,6 +77,26 @@ describe('SQSQueue', () => {
     it('returns the retrieved messages', async () => {
       const response = await queue.fetchMessages()
       expect(response).toEqual([exampleMessage])
+    })
+  })
+
+  describe('deleteMessage', () => {
+    const exampleMessage = {
+      ReceiptHandle: '123456'
+    }
+    it('calls deleteMessage on the SQS client', async () => {
+      await queue.deleteMessage(exampleMessage)
+
+      expect(deleteSpy).toBeCalledWith({
+        QueueUrl: queueUrl,
+        ReceiptHandle: exampleMessage.ReceiptHandle
+      })
+    })
+
+    it('requires a message with a ReceiptHandle', async () => {
+      const response = queue.deleteMessage({})
+
+      expect(response).rejects.toThrow(TypeError)
     })
   })
 })

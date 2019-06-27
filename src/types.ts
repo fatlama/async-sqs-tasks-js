@@ -5,30 +5,36 @@
 export type QueueIdentifier = string
 export type OperationName = string
 
-export interface AsyncTaskContext<T> {
+export interface DefaultTaskContext {
   sqsMessage: AWS.SQS.Message
-  task: MessageBody<T>
 }
 
 export interface QueueConfiguration {
   queueUrl: string
 }
 
-export interface MessageBody<T> {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export interface MessageBody<TPayload = any> {
   taskId: string
   operationName: string
-  payload: T
+  payload: TPayload
 }
 
+/**
+ * Given a raw SQS message generates a context that can be referenced in handlers
+ */
+export type GetContextFn<TContext> = (sqsMessage: AWS.SQS.Message) => Promise<TContext>
+export type SQSClient = Pick<AWS.SQS, 'sendMessage' | 'receiveMessage' | 'deleteMessage'>
+
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface OperationConfiguration<T = any> {
+export interface OperationConfiguration<TPayload = any, TContext = any> {
   operationName: OperationName
   queueId?: QueueIdentifier
   /**
    * Validates the payload for correctness and throws an exception if invalid
    * @param payload
    */
-  validate(payload: T): Promise<void>
+  validate(payload: TPayload): Promise<void>
   /**
    * Receives the input and is expected to handle the task
    *
@@ -37,5 +43,5 @@ export interface OperationConfiguration<T = any> {
    * @param payload
    * @param ctx
    */
-  handle(payload: T, ctx: AsyncTaskContext<T>): Promise<void>
+  handle(task: MessageBody<TPayload>, ctx: TContext): Promise<void>
 }

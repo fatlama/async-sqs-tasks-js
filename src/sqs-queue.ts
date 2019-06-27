@@ -1,9 +1,8 @@
 import * as AWS from 'aws-sdk'
+import { MessageBody, SQSClient } from './types'
 
 export const DEFAULT_MAX_NUMBER_OF_MESSAGES = 5
 export const DEFAULT_WAIT_TIME_SECONDS = 30
-
-export type SQSClient = Pick<AWS.SQS, 'sendMessage' | 'receiveMessage'>
 
 interface SQSQueueConfig {
   queueUrl: string
@@ -54,8 +53,7 @@ export class SQSQueue {
    * Encode the body as a JSON string and then send a message to the specified
    * @param body the data capable of being encoded as a JSON object
    */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  public async sendMessage<T = any>(body: T): Promise<AWS.SQS.Message> {
+  public async sendMessage<T = MessageBody>(body: T): Promise<AWS.SQS.Message> {
     return this.sqsClient
       .sendMessage({
         QueueUrl: this.config.queueUrl,
@@ -77,5 +75,18 @@ export class SQSQueue {
       .promise()
 
     return response.Messages || []
+  }
+
+  public async deleteMessage(message: Pick<AWS.SQS.Message, 'ReceiptHandle'>): Promise<void> {
+    if (!message.ReceiptHandle) {
+      throw new TypeError('expected message to have property ReceiptHandle')
+    }
+
+    await this.sqsClient
+      .deleteMessage({
+        QueueUrl: this.config.queueUrl,
+        ReceiptHandle: message.ReceiptHandle
+      })
+      .promise()
   }
 }

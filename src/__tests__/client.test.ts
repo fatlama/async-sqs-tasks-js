@@ -2,29 +2,13 @@ import * as AWS from 'aws-sdk'
 import * as AWSMock from 'aws-sdk-mock'
 import * as uuid from 'uuid'
 import { AsyncTasksClient, RegisterOperationInput } from '../client'
+import { ExamplePayload, validationFunction, handleFunction } from './test-util'
 
 describe('AsyncTasksClient', () => {
   let client: AsyncTasksClient
 
-  interface ExamplePayload {
-    hello: string
-  }
-
   const examplePayload = {
     hello: 'world'
-  }
-
-  const validationFunction = async (payload: ExamplePayload): Promise<void> => {
-    if (payload.hello !== 'world') {
-      throw new Error('expected greeting to be for the world')
-    }
-  }
-
-  const handleFunction = async (payload: ExamplePayload): Promise<void> => {
-    if (payload.hello === 'world') {
-      // eslint-disable-next-line no-console
-      console.log('hello world')
-    }
   }
 
   const existingOperation = {

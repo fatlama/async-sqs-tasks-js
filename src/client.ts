@@ -2,11 +2,12 @@ import * as AWS from 'aws-sdk'
 import * as uuid from 'uuid'
 import { SQSQueue } from './sqs-queue'
 import {
+  MessageBody,
   OperationConfiguration,
   OperationName,
   QueueConfiguration,
   QueueIdentifier,
-  MessageBody
+  SQSClient
 } from './types'
 import { InvalidPayloadError, OperationNotRegistered, QueueNotRegistered } from './errors'
 
@@ -14,7 +15,12 @@ const DEFAULT_QUEUE = 'default'
 
 interface ClientConfiguration {
   defaultQueue: QueueConfiguration
-  sqsClient?: Pick<AWS.SQS, 'sendMessage' | 'receiveMessage'>
+  /**
+   * The SQS client provided to queues upon initialization
+   *
+   * Defaults to `new AWS.SQS()`
+   */
+  sqsClient?: SQSClient
 }
 
 export type RegisterOperationInput<T> = OperationConfiguration<T>
@@ -30,11 +36,12 @@ export interface SubmitTaskResponse {
 }
 
 /**
- * Handles registering operations and enqueueing/dequeueing tasks
+ * Handles configuring queues, registering operations, and enqueueing/dequeueing tasks
+ * for processing
  *
  * TODO:
- * * Add processTasks method
- * * Add
+ * * Add generic for task context (currently just using DefaultTaskContext)
+ * * Add processTasks() method to actually process tasks
  */
 export class AsyncTasksClient {
   private queues: Record<QueueIdentifier, SQSQueue>
@@ -134,5 +141,5 @@ export class AsyncTasksClient {
     }
   }
 
-  // async processTasks(): Promise<void>
+  // public async processTasks(): Promise<void>
 }
