@@ -14,7 +14,7 @@ export interface QueueConfiguration {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export interface MessageBody<TPayload = any> {
+export interface Task<TPayload = any> {
   taskId: string
   operationName: string
   payload: TPayload
@@ -43,5 +43,5 @@ export interface OperationConfiguration<TPayload = any, TContext = any> {
    * @param payload
    * @param ctx
    */
-  handle(task: MessageBody<TPayload>, ctx: TContext): Promise<void>
+  handle(task: Task<TPayload>, ctx: TContext): Promise<void>
 }

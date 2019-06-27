@@ -1,4 +1,4 @@
-import { MessageBody } from '../types'
+import { Task } from '../types'
 
 export interface ExamplePayload {
   hello: string
@@ -10,7 +10,7 @@ export const validationFunction = async (payload: ExamplePayload): Promise<void>
   }
 }
 
-export const handleFunction = async (task: MessageBody<ExamplePayload>): Promise<void> => {
+export const handleFunction = async (task: Task<ExamplePayload>): Promise<void> => {
   if (task.payload.hello !== 'world') {
     throw new Error('you should greet the world instead')
   }

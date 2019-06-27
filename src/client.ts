@@ -2,12 +2,12 @@ import * as AWS from 'aws-sdk'
 import * as uuid from 'uuid'
 import { SQSQueue } from './sqs-queue'
 import {
-  MessageBody,
   OperationConfiguration,
   OperationName,
   QueueConfiguration,
   QueueIdentifier,
-  SQSClient
+  SQSClient,
+  Task
 } from './types'
 import { InvalidPayloadError, OperationNotRegistered, QueueNotRegistered } from './errors'
 
@@ -127,7 +127,7 @@ export class AsyncTasksClient {
     }
 
     const taskId = uuid.v4()
-    const messageBody: MessageBody<T> = {
+    const messageBody: Task<T> = {
       taskId,
       operationName,
       payload

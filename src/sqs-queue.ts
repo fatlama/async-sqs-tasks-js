@@ -1,5 +1,5 @@
 import * as AWS from 'aws-sdk'
-import { MessageBody, SQSClient } from './types'
+import { Task, SQSClient } from './types'
 
 export const DEFAULT_MAX_NUMBER_OF_MESSAGES = 5
 export const DEFAULT_WAIT_TIME_SECONDS = 30
@@ -53,7 +53,7 @@ export class SQSQueue {
    * Encode the body as a JSON string and then send a message to the specified
    * @param body the data capable of being encoded as a JSON object
    */
-  public async sendMessage<T = MessageBody>(body: T): Promise<AWS.SQS.Message> {
+  public async sendMessage<T = Task>(body: T): Promise<AWS.SQS.Message> {
     return this.sqsClient
       .sendMessage({
         QueueUrl: this.config.queueUrl,
