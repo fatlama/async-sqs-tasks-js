@@ -24,9 +24,11 @@ describe('task-consumer', () => {
   }
 
   const consumerConfig = {
-    queueUrl: 'http://test-queue',
     routes,
-    getContext: exampleContextProvider
+    contextProvider: exampleContextProvider,
+    consumerOptions: {
+      queueUrl: 'http://test-queue'
+    }
   }
 
   beforeEach(() => {

@@ -1,10 +1,10 @@
 import { SQS } from 'aws-sdk'
 import * as uuid from 'uuid'
-import { Consumer } from 'sqs-consumer'
-import { createTaskConsumer, getDefaultTaskContext } from './task-consumer'
+import { Consumer, ConsumerOptions } from 'sqs-consumer'
+import { createTaskConsumer } from './task-consumer'
 import {
+  ContextProviderFn,
   DefaultTaskContext,
-  GetContextFn,
   OperationConfiguration,
   OperationName,
   OperationRouter,
@@ -16,14 +16,8 @@ import { InvalidPayloadError, OperationNotRegistered, QueueNotRegistered } from 
 
 const DEFAULT_QUEUE_NAME = 'default'
 
-export interface ClientConfiguration<TContext> {
+export interface ClientConfiguration {
   defaultQueue: QueueConfiguration
-  /**
-   * Async method invoked for each message that arrives to generate a context
-   *
-   * Defaults to a method that returns DefaultTaskContext
-   */
-  getContext?: GetContextFn<TContext>
   /**
    * Optionally specify additional queues aside from the requisite default queue
    */
@@ -48,19 +42,22 @@ export interface SubmitTaskResponse {
   taskId: string
 }
 
+export interface GetConsumersInput<TContext = DefaultTaskContext> {
+  contextProvider: ContextProviderFn<TContext>
+  consumerOpts?: ConsumerOptions
+}
+
 /**
  * Handles configuring queues, registering operations, and enqueueing/dequeueing tasks
  * for processing
  */
-export class AsyncTasksClient<TContext = DefaultTaskContext> {
+export class AsyncTasksClient {
   private sqsClient: SQS
   private queues: Record<QueueName, QueueConfiguration>
   private routes: OperationRouter
-  private getContext: GetContextFn<TContext>
   private consumers: Record<QueueName, Consumer>
 
-  public constructor(config: ClientConfiguration<TContext>) {
-    this.getContext = (config.getContext || getDefaultTaskContext) as GetContextFn<TContext>
+  public constructor(config: ClientConfiguration) {
     this.queues = {
       ...config.queues,
       [DEFAULT_QUEUE_NAME]: config.defaultQueue
@@ -166,25 +163,18 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> {
     }
   }
 
-  public getConsumerInstances(): Record<QueueName, Consumer> {
-    if (Object.values(this.consumers).length === 0) {
-      this.consumers = this._createQueueConsumers()
-    }
-
-    return { ...this.consumers }
-  }
-
-  private _createQueueConsumers(): Record<QueueName, Consumer> {
+  public getConsumers<TContext>(input: GetConsumersInput<TContext>): Record<QueueName, Consumer> {
     const queueNames = Object.keys(this.queues)
     const consumers: Record<QueueName, Consumer> = {}
 
     queueNames.forEach((queueName): void => {
       consumers[queueName] = createTaskConsumer<TContext>({
-        queueUrl: this.queues[queueName].queueUrl,
         routes: this.routes,
-        getContext: this.getContext,
+        contextProvider: input.contextProvider,
         consumerOptions: {
-          sqs: this.sqsClient
+          sqs: this.sqsClient,
+          ...input.consumerOpts,
+          queueUrl: this.queues[queueName].queueUrl
         }
       })
     })

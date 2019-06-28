@@ -2,7 +2,7 @@ import * as SQS from 'aws-sdk/clients/sqs'
 import { Consumer, ConsumerOptions } from 'sqs-consumer'
 import {
   DefaultTaskContext,
-  GetContextFn,
+  ContextProviderFn,
   OperationName,
   OperationConfiguration,
   Task,
@@ -26,7 +26,7 @@ export async function getDefaultTaskContext(sqsMessage: SQS.Message): Promise<De
  */
 async function handleMessage<TContext>(
   message: SQS.Types.Message,
-  ctxProvider: GetContextFn<TContext>,
+  ctxProvider: ContextProviderFn<TContext>,
   routes: OperationRouter
 ): Promise<void> {
   if (!message.Body) {
@@ -56,19 +56,18 @@ export function createMessageHandler<TContext>(
   if (!config.routes) {
     throw new TypeError('routes configuration required')
   }
-  if (typeof config.getContext !== 'function') {
-    throw new TypeError('getContext required')
+  if (typeof config.contextProvider !== 'function') {
+    throw new TypeError('contextProvider required')
   }
 
   return async (message: SQS.Types.Message): Promise<void> => {
-    await handleMessage<TContext>(message, config.getContext, config.routes)
+    await handleMessage<TContext>(message, config.contextProvider, config.routes)
   }
 }
 
 export interface CreateConsumerInput<ContextType> {
-  queueUrl: string
   routes: Record<OperationName, OperationConfiguration>
-  getContext(message: SQS.Types.Message): Promise<ContextType>
+  contextProvider(message: SQS.Types.Message): Promise<ContextType>
   consumerOptions?: ConsumerOptions
 }
 
@@ -77,7 +76,6 @@ export function createTaskConsumer<TContext>(config: CreateConsumerInput<TContex
 
   return Consumer.create({
     ...config.consumerOptions,
-    queueUrl: config.queueUrl,
     handleMessage
   })
 }

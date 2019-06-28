@@ -3,6 +3,8 @@ import * as AWSMock from 'aws-sdk-mock'
 import * as uuid from 'uuid'
 import { Consumer } from 'sqs-consumer'
 import { AsyncTasksClient, RegisterOperationInput } from '../client'
+import { DefaultTaskContext } from '../types'
+import { getDefaultTaskContext } from '../task-consumer'
 import { ExamplePayload, validationFunction, handleFunction } from './test-util'
 
 describe('AsyncTasksClient', () => {
@@ -125,16 +127,11 @@ describe('AsyncTasksClient', () => {
 
   describe('getConsumerInstances', () => {
     it('returns a hashmap of consumers by queue name', () => {
-      const consumers = client.getConsumerInstances()
+      const consumers = client.getConsumers<DefaultTaskContext>({
+        contextProvider: getDefaultTaskContext
+      })
 
       expect(consumers['default']).toBeInstanceOf(Consumer)
-    })
-
-    it('returns a new hash map with the same instances on subsequent calls', () => {
-      const consumersA = client.getConsumerInstances()
-      const consumersB = client.getConsumerInstances()
-
-      expect(consumersA['default']).toBe(consumersB['default'])
     })
   })
 })
