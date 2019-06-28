@@ -44,11 +44,10 @@ export class AsyncTasksClient {
   private routes: OperationRouter
 
   public constructor(config: ClientConfiguration) {
-    const sqsClient = config.sqsClient || new SQS()
-    this.sqsClient = sqsClient
-
-    this.queues = {}
-    this.queues[DEFAULT_QUEUE_NAME] = config.defaultQueue
+    this.sqsClient = config.sqsClient || new SQS()
+    this.queues = {
+      [DEFAULT_QUEUE_NAME]: config.defaultQueue
+    }
     this.routes = {}
   }
 
