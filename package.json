@@ -18,13 +18,17 @@
     "test": "jest"
   },
   "dependencies": {
+    "aws-sdk": "^2.482.0",
+    "uuid": "^3.3.2"
   },
   "devDependencies": {
     "@fatlama/eslint-config-base": "^1.1.0",
     "@fatlama/eslint-config-typescript": "^1.1.0",
     "@types/jest": "^24.0.13",
+    "@types/uuid": "^3.4.4",
     "@typescript-eslint/eslint-plugin": "^1.9.0",
     "@typescript-eslint/parser": "^1.9.0",
+    "aws-sdk-mock": "^4.4.0",
     "codecov": "^3.5.0",
     "eslint": "^5.16.0",
     "eslint-config-prettier": "^4.3.0",
