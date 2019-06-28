@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "aws-sdk": "^2.482.0",
+    "sqs-consumer": "^5.3.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {

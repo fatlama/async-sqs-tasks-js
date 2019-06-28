@@ -682,6 +682,21 @@ aws-sdk@^2.431.0, aws-sdk@^2.482.0:
     uuid "3.3.2"
     xml2js "0.4.19"
 
+aws-sdk@^2.443.0:
+  version "2.484.0"
+  resolved "https://registry.yarnpkg.com/aws-sdk/-/aws-sdk-2.484.0.tgz#ec1039f0fae688eb120729ca35f0c686043199df"
+  integrity sha512-zGWbN9okRRSXvJDYXLdPGuSri+w6X7Fp5MxztlkXWsS6GCm7Lya8Iiti1cYa3/S4PgprmScHSCk+sFcwGRLBfw==
+  dependencies:
+    buffer "4.9.1"
+    events "1.1.1"
+    ieee754 "1.1.8"
+    jmespath "0.15.0"
+    querystring "0.2.0"
+    sax "1.2.1"
+    url "0.10.3"
+    uuid "3.3.2"
+    xml2js "0.4.19"
+
 aws-sign2@~0.7.0:
   version "0.7.0"
   resolved "https://registry.yarnpkg.com/aws-sign2/-/aws-sign2-0.7.0.tgz#b46e890934a9591f2d2f6f86d7e6a9f1b3fe76a8"
@@ -4361,6 +4376,14 @@ sprintf-js@~1.0.2:
   version "1.0.3"
   resolved "https://registry.yarnpkg.com/sprintf-js/-/sprintf-js-1.0.3.tgz#04e6926f662895354f3dd015203633b857297e2c"
   integrity sha1-BOaSb2YolTVPPdAVIDYzuFcpfiw=
+
+sqs-consumer@^5.3.0:
+  version "5.3.0"
+  resolved "https://registry.yarnpkg.com/sqs-consumer/-/sqs-consumer-5.3.0.tgz#1ef8d0a4d14f97a9e2b788af1a0e35166533d21d"
+  integrity sha512-6HO3rLx6/+YPPA3qDMNCqMehRJ9GWeV9+2d7bq1gOI0CKik/cmtooWZvHT+b8bhukjv64BtlftKlIQ6AwEZ2NQ==
+  dependencies:
+    aws-sdk "^2.443.0"
+    debug "^4.1.1"
 
 sshpk@^1.7.0:
   version "1.16.1"

@@ -1,6 +1,7 @@
 import * as AWS from 'aws-sdk'
 import * as AWSMock from 'aws-sdk-mock'
 import * as uuid from 'uuid'
+import { Consumer } from 'sqs-consumer'
 import { AsyncTasksClient, RegisterOperationInput } from '../client'
 import { ExamplePayload, validationFunction, handleFunction } from './test-util'
 
@@ -119,6 +120,21 @@ describe('AsyncTasksClient', () => {
         payload: { shouldSucceed: false }
       })
       await expect(response).rejects.toThrowError('Payload validation failed')
+    })
+  })
+
+  describe('getConsumerInstances', () => {
+    it('returns a hashmap of consumers by queue name', () => {
+      const consumers = client.getConsumerInstances()
+
+      expect(consumers['default']).toBeInstanceOf(Consumer)
+    })
+
+    it('returns a new hash map with the same instances on subsequent calls', () => {
+      const consumersA = client.getConsumerInstances()
+      const consumersB = client.getConsumerInstances()
+
+      expect(consumersA['default']).toBe(consumersB['default'])
     })
   })
 })
