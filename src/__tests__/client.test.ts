@@ -39,6 +39,7 @@ describe('AsyncTasksClient', () => {
 
   afterEach(() => {
     AWSMock.restore()
+    jest.clearAllMocks()
   })
 
   describe('registerOperation', () => {
@@ -80,8 +81,8 @@ describe('AsyncTasksClient', () => {
 
     it('throws QueueNotRegistered if the queueId specified is not present', () => {
       expect(() => {
-        client.registerOperation({ ...exampleRegisterOperationInput, queueId: 'not-a-valid-queue' })
-      }).toThrowError('No queue configured for queueId')
+        client.registerOperation({ ...exampleRegisterOperationInput, queue: 'not-a-valid-queue' })
+      }).toThrowError('No queue configured for queueName')
     })
   })
 
@@ -109,11 +110,14 @@ describe('AsyncTasksClient', () => {
 
     it('throws an OperationNotRegistered error if an invalid operationName is specified', async () => {
       const response = client.submitTask({ ...exampleTaskRequest, operationName: 'does not exist' })
-      await expect(response).rejects.toThrowError(/operation is not registered/)
+      await expect(response).rejects.toThrowError('No handler registered for operation')
     })
 
     it('throws an InvalidPayloadError if the payload is invalid', async () => {
-      const response = client.submitTask({ ...exampleTaskRequest, payload: { hello: 'dolly' } })
+      const response = client.submitTask({
+        ...exampleTaskRequest,
+        payload: { shouldSucceed: false }
+      })
       await expect(response).rejects.toThrowError('Payload validation failed')
     })
   })

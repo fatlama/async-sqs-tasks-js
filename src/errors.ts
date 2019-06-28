@@ -1,41 +1,39 @@
-// https://rclayton.silvrback.com/custom-errors-in-node-js
-class InternalError extends Error {
-  public type?: string
+import { Task } from './types'
 
-  public constructor(message: string) {
-    super(message)
-    this.name = this.constructor.name
-    Error.captureStackTrace(this, this.constructor)
+export class InvalidPayloadError extends Error {
+  public operationName?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public payload?: any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public err?: any
+}
+
+export class MalformedRequestError extends Error {
+  public request: Task
+
+  public constructor(request: Task) {
+    super('Malformed request received')
+    this.request = request
+    this.name = 'MalformedRequestError'
   }
 }
 
-export class InvalidPayloadError extends InternalError {
-  public operationName: string | null
-  public err: unknown
-
-  public constructor(operationName: string, err?: unknown) {
-    super('Payload validation failed')
-    this.type = 'asyncTasks.InvalidPayloadError'
-    this.operationName = operationName || null
-    this.err = err
-  }
-}
-
-export class OperationNotRegistered extends InternalError {
+export class OperationNotRegistered extends Error {
   public operationName: string
 
   public constructor(operationName: string) {
-    super('Async operation is not registered')
-    this.type = 'asyncTasks.OperationNotRegistered'
+    super('No handler registered for operation')
     this.operationName = operationName
+    this.name = 'OperationNotRegistered'
   }
 }
 
-export class QueueNotRegistered extends InternalError {
-  public queueId: string
+export class QueueNotRegistered extends Error {
+  public queueName?: string
 
-  public constructor(queueId: string) {
-    super('No queue configured for queueId')
-    this.queueId = queueId
+  public constructor(queueName: string) {
+    super('No queue configured for queueName')
+    this.queueName = queueName
+    this.name = 'QueueNotRegistered'
   }
 }

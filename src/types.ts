@@ -1,12 +1,16 @@
+import * as SQS from 'aws-sdk/clients/sqs'
+
 /**
  * The queue identifier used by upstream clients
  * e.g. 'default', 'high'
  */
-export type QueueIdentifier = string
+export type QueueName = string
 export type OperationName = string
 
+export type OperationRouter = Record<OperationName, OperationConfiguration>
+
 export interface DefaultTaskContext {
-  sqsMessage: AWS.SQS.Message
+  sqsMessage: SQS.Types.Message
 }
 
 export interface QueueConfiguration {
@@ -23,13 +27,12 @@ export interface Task<TPayload = any> {
 /**
  * Given a raw SQS message generates a context that can be referenced in handlers
  */
-export type GetContextFn<TContext> = (sqsMessage: AWS.SQS.Message) => Promise<TContext>
-export type SQSClient = Pick<AWS.SQS, 'sendMessage' | 'receiveMessage' | 'deleteMessage'>
+export type GetContextFn<TContext> = (sqsMessage: SQS.Types.Message) => Promise<TContext>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface OperationConfiguration<TPayload = any, TContext = any> {
   operationName: OperationName
-  queueId?: QueueIdentifier
+  queue?: QueueName
   /**
    * Validates the payload for correctness and throws an exception if invalid
    * @param payload

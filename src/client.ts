@@ -1,17 +1,16 @@
-import * as AWS from 'aws-sdk'
+import { SQS } from 'aws-sdk'
 import * as uuid from 'uuid'
-import { SQSQueue } from './sqs-queue'
 import {
   OperationConfiguration,
   OperationName,
+  OperationRouter,
   QueueConfiguration,
-  QueueIdentifier,
-  SQSClient,
+  QueueName,
   Task
 } from './types'
 import { InvalidPayloadError, OperationNotRegistered, QueueNotRegistered } from './errors'
 
-const DEFAULT_QUEUE = 'default'
+const DEFAULT_QUEUE_NAME = 'default'
 
 interface ClientConfiguration {
   defaultQueue: QueueConfiguration
@@ -20,7 +19,7 @@ interface ClientConfiguration {
    *
    * Defaults to `new AWS.SQS()`
    */
-  sqsClient?: SQSClient
+  sqsClient?: SQS
 }
 
 export type RegisterOperationInput<T> = OperationConfiguration<T>
@@ -38,19 +37,18 @@ export interface SubmitTaskResponse {
 /**
  * Handles configuring queues, registering operations, and enqueueing/dequeueing tasks
  * for processing
- *
- * TODO:
- * * Add generic for task context (currently just using DefaultTaskContext)
- * * Add processTasks() method to actually process tasks
  */
 export class AsyncTasksClient {
-  private queues: Record<QueueIdentifier, SQSQueue>
-  private routes: Record<OperationName, OperationConfiguration>
+  private sqsClient: SQS
+  private queues: Record<QueueName, QueueConfiguration>
+  private routes: OperationRouter
 
   public constructor(config: ClientConfiguration) {
-    const sqsClient = config.sqsClient || new AWS.SQS()
+    const sqsClient = config.sqsClient || new SQS()
+    this.sqsClient = sqsClient
+
     this.queues = {}
-    this.queues[DEFAULT_QUEUE] = new SQSQueue({ ...config.defaultQueue, sqsClient })
+    this.queues[DEFAULT_QUEUE_NAME] = config.defaultQueue
     this.routes = {}
   }
 
@@ -69,7 +67,7 @@ export class AsyncTasksClient {
    */
   public registerOperation<T>(input: RegisterOperationInput<T>): void {
     const route = {
-      queueId: DEFAULT_QUEUE,
+      queue: DEFAULT_QUEUE_NAME,
       ...input
     }
 
@@ -85,8 +83,8 @@ export class AsyncTasksClient {
       throw new TypeError('No handle function provided')
     }
 
-    if (!this.queues[route.queueId]) {
-      throw new QueueNotRegistered(route.queueId)
+    if (!this.queues[route.queue]) {
+      throw new QueueNotRegistered(route.queue)
     }
 
     this.routes[input.operationName] = route
@@ -116,11 +114,15 @@ export class AsyncTasksClient {
     try {
       await routeConfig.validate(payload)
     } catch (error) {
-      throw new InvalidPayloadError(operationName, error)
+      const validationError = new InvalidPayloadError('Payload validation failed')
+      validationError.operationName = operationName
+      validationError.err = error
+
+      throw validationError
     }
 
     // TODO Allow routes to specify a queue
-    const queueId = DEFAULT_QUEUE
+    const queueId = DEFAULT_QUEUE_NAME
     const queue = this.queues[queueId]
     if (!queue) {
       throw new QueueNotRegistered(queueId)
@@ -133,13 +135,16 @@ export class AsyncTasksClient {
       payload
     }
 
-    const sqsResponse = await queue.sendMessage(messageBody)
+    const sqsResponse = await this.sqsClient
+      .sendMessage({
+        QueueUrl: queue.queueUrl,
+        MessageBody: JSON.stringify(messageBody)
+      })
+      .promise()
 
     return {
       messageId: sqsResponse.MessageId || null,
       taskId
     }
   }
-
-  // public async processTasks(): Promise<void>
 }
