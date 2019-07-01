@@ -30,8 +30,6 @@ export interface ClientConfiguration {
   sqsClient?: SQS
 }
 
-export type RegisterOperationInput<T> = OperationConfiguration<T>
-
 export interface SubmitTaskInput<T> {
   operationName: string
   payload: T
@@ -51,11 +49,10 @@ export interface GetConsumersInput<TContext = DefaultTaskContext> {
  * Handles configuring queues, registering operations, and enqueueing/dequeueing tasks
  * for processing
  */
-export class AsyncTasksClient {
+export class AsyncTasksClient<TContext = DefaultTaskContext> {
   private sqsClient: SQS
   private queues: Record<QueueName, QueueConfiguration>
   private routes: OperationRouter
-  private consumers: Record<QueueName, Consumer>
 
   public constructor(config: ClientConfiguration) {
     this.queues = {
@@ -65,7 +62,6 @@ export class AsyncTasksClient {
     this.sqsClient = config.sqsClient || new SQS()
 
     this.routes = {}
-    this.consumers = {}
   }
 
   public get registeredOperations(): OperationName[] {
@@ -81,7 +77,7 @@ export class AsyncTasksClient {
    * @param input
    * @throws {QueueNotRegistered} the queueId specified is not registered
    */
-  public registerOperation<T>(input: RegisterOperationInput<T>): void {
+  public registerOperation<TPayload>(input: OperationConfiguration<TPayload, TContext>): void {
     const route = {
       queue: input.queue || DEFAULT_QUEUE_NAME,
       ...input
@@ -163,7 +159,7 @@ export class AsyncTasksClient {
     }
   }
 
-  public getConsumers<TContext>(input: GetConsumersInput<TContext>): Record<QueueName, Consumer> {
+  public getConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer> {
     const queueNames = Object.keys(this.queues)
     const consumers: Record<QueueName, Consumer> = {}
 
