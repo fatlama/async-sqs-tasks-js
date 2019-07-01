@@ -3,7 +3,7 @@ import * as uuid from 'uuid'
 import { Consumer, ConsumerOptions } from 'sqs-consumer'
 import { createTaskConsumer } from './task-consumer'
 import {
-  ContextProviderFn,
+  ContextProvider,
   DefaultTaskContext,
   OperationConfiguration,
   OperationName,
@@ -43,7 +43,7 @@ export interface SubmitTaskResponse {
 }
 
 export interface GetConsumersInput<TContext = DefaultTaskContext> {
-  contextProvider: ContextProviderFn<TContext>
+  contextProvider: ContextProvider<TContext>
   consumerOpts?: ConsumerOptions
 }
 
