@@ -159,7 +159,7 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> {
     }
   }
 
-  public getConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer> {
+  public generateConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer> {
     const queueNames = Object.keys(this.queues)
     const consumers: Record<QueueName, Consumer> = {}
 

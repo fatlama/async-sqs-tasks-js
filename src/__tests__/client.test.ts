@@ -2,9 +2,9 @@ import * as AWS from 'aws-sdk'
 import * as AWSMock from 'aws-sdk-mock'
 import * as uuid from 'uuid'
 import { Consumer } from 'sqs-consumer'
-import { AsyncTasksClient, RegisterOperationInput } from '../client'
-import { DefaultTaskContext } from '../types'
+import { AsyncTasksClient } from '../client'
 import { getDefaultTaskContext } from '../task-consumer'
+import { OperationConfiguration, DefaultTaskContext } from '../types'
 import { ExamplePayload, validationFunction, handleFunction } from './test-util'
 
 describe('AsyncTasksClient', () => {
@@ -34,7 +34,7 @@ describe('AsyncTasksClient', () => {
       sqsClient
     }
 
-    client = new AsyncTasksClient(config)
+    client = new AsyncTasksClient<DefaultTaskContext>(config)
     client.registerOperation<ExamplePayload>(existingOperation)
 
     sendSpy = jest.spyOn(sqsClient, 'sendMessage')
@@ -46,7 +46,7 @@ describe('AsyncTasksClient', () => {
   })
 
   describe('registerOperation', () => {
-    const exampleRegisterOperationInput: RegisterOperationInput<ExamplePayload> = {
+    const exampleRegisterOperationInput: OperationConfiguration<ExamplePayload> = {
       operationName: 'SendPushNotification',
       validate: validationFunction,
       handle: handleFunction
@@ -125,9 +125,9 @@ describe('AsyncTasksClient', () => {
     })
   })
 
-  describe('getConsumerInstances', () => {
+  describe('generateConsumers', () => {
     it('returns a hashmap of consumers by queue name', () => {
-      const consumers = client.getConsumers<DefaultTaskContext>({
+      const consumers = client.generateConsumers({
         contextProvider: getDefaultTaskContext
       })
 
