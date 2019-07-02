@@ -1,6 +1,6 @@
 {
   "name": "@fatlama/async-sqs-tasks",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "repository": "github.com/fatlama/async-sqs-tasks-js",
@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "aws-sdk": "^2.482.0",
+    "sqs-consumer": "^5.3.0",
     "uuid": "^3.3.2"
   },
   "devDependencies": {

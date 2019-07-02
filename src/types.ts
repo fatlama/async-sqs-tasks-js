@@ -27,7 +27,7 @@ export interface Task<TPayload = any> {
 /**
  * Given a raw SQS message generates a context that can be referenced in handlers
  */
-export type GetContextFn<TContext> = (sqsMessage: SQS.Types.Message) => Promise<TContext>
+export type ContextProvider<TContext> = (sqsMessage: SQS.Types.Message) => Promise<TContext>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface OperationConfiguration<TPayload = any, TContext = any> {

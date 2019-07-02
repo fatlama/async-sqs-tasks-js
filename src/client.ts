@@ -1,6 +1,10 @@
 import { SQS } from 'aws-sdk'
 import * as uuid from 'uuid'
+import { Consumer, ConsumerOptions } from 'sqs-consumer'
+import { createTaskConsumer } from './task-consumer'
 import {
+  ContextProvider,
+  DefaultTaskContext,
   OperationConfiguration,
   OperationName,
   OperationRouter,
@@ -12,8 +16,12 @@ import { InvalidPayloadError, OperationNotRegistered, QueueNotRegistered } from 
 
 const DEFAULT_QUEUE_NAME = 'default'
 
-interface ClientConfiguration {
+export interface ClientConfiguration {
   defaultQueue: QueueConfiguration
+  /**
+   * Optionally specify additional queues aside from the requisite default queue
+   */
+  queues?: Record<QueueName, QueueConfiguration>
   /**
    * The SQS client provided to queues upon initialization
    *
@@ -21,8 +29,6 @@ interface ClientConfiguration {
    */
   sqsClient?: SQS
 }
-
-export type RegisterOperationInput<T> = OperationConfiguration<T>
 
 export interface SubmitTaskInput<T> {
   operationName: string
@@ -34,20 +40,27 @@ export interface SubmitTaskResponse {
   taskId: string
 }
 
+export interface GetConsumersInput<TContext = DefaultTaskContext> {
+  contextProvider: ContextProvider<TContext>
+  consumerOpts?: ConsumerOptions
+}
+
 /**
  * Handles configuring queues, registering operations, and enqueueing/dequeueing tasks
  * for processing
  */
-export class AsyncTasksClient {
+export class AsyncTasksClient<TContext = DefaultTaskContext> {
   private sqsClient: SQS
   private queues: Record<QueueName, QueueConfiguration>
   private routes: OperationRouter
 
   public constructor(config: ClientConfiguration) {
-    this.sqsClient = config.sqsClient || new SQS()
     this.queues = {
+      ...config.queues,
       [DEFAULT_QUEUE_NAME]: config.defaultQueue
     }
+    this.sqsClient = config.sqsClient || new SQS()
+
     this.routes = {}
   }
 
@@ -64,9 +77,9 @@ export class AsyncTasksClient {
    * @param input
    * @throws {QueueNotRegistered} the queueId specified is not registered
    */
-  public registerOperation<T>(input: RegisterOperationInput<T>): void {
+  public registerOperation<TPayload>(input: OperationConfiguration<TPayload, TContext>): void {
     const route = {
-      queue: DEFAULT_QUEUE_NAME,
+      queue: input.queue || DEFAULT_QUEUE_NAME,
       ...input
     }
 
@@ -120,11 +133,10 @@ export class AsyncTasksClient {
       throw validationError
     }
 
-    // TODO Allow routes to specify a queue
-    const queueId = DEFAULT_QUEUE_NAME
-    const queue = this.queues[queueId]
+    const queueName = routeConfig.queue || DEFAULT_QUEUE_NAME
+    const queue = this.queues[queueName]
     if (!queue) {
-      throw new QueueNotRegistered(queueId)
+      throw new QueueNotRegistered(queueName)
     }
 
     const taskId = uuid.v4()
@@ -145,5 +157,24 @@ export class AsyncTasksClient {
       messageId: sqsResponse.MessageId || null,
       taskId
     }
+  }
+
+  public generateConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer> {
+    const queueNames = Object.keys(this.queues)
+    const consumers: Record<QueueName, Consumer> = {}
+
+    queueNames.forEach((queueName): void => {
+      consumers[queueName] = createTaskConsumer<TContext>({
+        routes: this.routes,
+        contextProvider: input.contextProvider,
+        consumerOptions: {
+          sqs: this.sqsClient,
+          ...input.consumerOpts,
+          queueUrl: this.queues[queueName].queueUrl
+        }
+      })
+    })
+
+    return consumers
   }
 }
