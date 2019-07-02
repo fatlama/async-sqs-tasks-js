@@ -1,17 +1,11 @@
-import * as SQS from 'aws-sdk/clients/sqs'
+export type OperationName = string
+export type OperationRouter = Record<OperationName, OperationConfiguration>
 
 /**
  * The queue identifier used by upstream clients
  * e.g. 'default', 'high'
  */
 export type QueueName = string
-export type OperationName = string
-
-export type OperationRouter = Record<OperationName, OperationConfiguration>
-
-export interface DefaultTaskContext {
-  sqsMessage: SQS.Types.Message
-}
 
 export interface QueueConfiguration {
   queueUrl: string
@@ -23,11 +17,6 @@ export interface Task<TPayload = any> {
   operationName: string
   payload: TPayload
 }
-
-/**
- * Given a raw SQS message generates a context that can be referenced in handlers
- */
-export type ContextProvider<TContext> = (sqsMessage: SQS.Types.Message) => Promise<TContext>
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export interface OperationConfiguration<TPayload = any, TContext = any> {

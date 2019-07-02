@@ -1,6 +1,7 @@
 import * as uuid from 'uuid'
 import * as SQS from 'aws-sdk/clients/sqs'
-import { Task, DefaultTaskContext } from '../types'
+import { DefaultTaskContext } from '../context'
+import { Task } from '../types'
 
 export interface ExamplePayload {
   testName?: string

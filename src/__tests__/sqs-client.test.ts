@@ -2,9 +2,9 @@ import * as AWS from 'aws-sdk'
 import * as AWSMock from 'aws-sdk-mock'
 import * as uuid from 'uuid'
 import { Consumer } from 'sqs-consumer'
-import { AsyncTasksClient } from '../client'
-import { getDefaultTaskContext } from '../task-consumer'
-import { OperationConfiguration, DefaultTaskContext } from '../types'
+import { AsyncTasksClient } from '../sqs-client'
+import { defaultTaskContextProvider, DefaultTaskContext } from '../context'
+import { OperationConfiguration } from '../types'
 import { ExamplePayload, validationFunction, handleFunction } from './test-util'
 
 describe('AsyncTasksClient', () => {
@@ -128,7 +128,7 @@ describe('AsyncTasksClient', () => {
   describe('generateConsumers', () => {
     it('returns a hashmap of consumers by queue name', () => {
       const consumers = client.generateConsumers({
-        contextProvider: getDefaultTaskContext
+        contextProvider: defaultTaskContextProvider
       })
 
       expect(consumers['default']).toBeInstanceOf(Consumer)
