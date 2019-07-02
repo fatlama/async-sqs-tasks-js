@@ -1,20 +1,8 @@
 import * as SQS from 'aws-sdk/clients/sqs'
 import { Consumer, ConsumerOptions } from 'sqs-consumer'
-import {
-  ContextProvider,
-  DefaultTaskContext,
-  OperationName,
-  OperationConfiguration,
-  Task,
-  OperationRouter
-} from './types'
+import { OperationName, OperationConfiguration, Task, OperationRouter } from './types'
+import { ContextProvider } from './context'
 import { OperationNotRegistered, MalformedRequestError } from './errors'
-
-export async function getDefaultTaskContext(sqsMessage: SQS.Message): Promise<DefaultTaskContext> {
-  return {
-    sqsMessage
-  }
-}
 
 function isValidTask(task: Task): boolean {
   return Boolean(task.operationName && task.taskId && typeof task.payload === 'object')

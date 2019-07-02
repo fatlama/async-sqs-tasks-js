@@ -1,3 +1,6 @@
 export * from './client'
-export * from './types'
+export * from './context'
 export * from './errors'
+export * from './types'
+export * from './noop-client'
+export * from './sqs-client'
