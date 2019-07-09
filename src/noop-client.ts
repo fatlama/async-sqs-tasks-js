@@ -1,11 +1,11 @@
 import { Consumer } from 'sqs-consumer'
 import {
+  BatchSubmitTaskResponseEntry,
+  BatchSubmitTaskStatus,
+  SubmitAllTasksResponse,
   SubmitTaskInput,
   SubmitTaskResponse,
-  TaskClient,
-  SubmitAllTasksResponse,
-  BatchSubmitTaskStatus,
-  BatchSubmitTaskResponseEntry
+  TaskClient
 } from './client'
 import { OperationConfiguration, OperationName, OperationRouter, QueueName } from './types'
 import { DefaultTaskContext } from './context'
