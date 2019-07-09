@@ -3,7 +3,15 @@ import * as uuid from 'uuid'
 import { Consumer } from 'sqs-consumer'
 import { DefaultTaskContext } from './context'
 import { createTaskConsumer } from './task-consumer'
-import { GetConsumersInput, SubmitTaskInput, SubmitTaskResponse, TaskClient } from './client'
+import {
+  BatchSubmitTaskResponseEntry,
+  BatchSubmitTaskStatus,
+  GetConsumersInput,
+  SubmitAllTasksResponse,
+  SubmitTaskInput,
+  SubmitTaskResponse,
+  TaskClient
+} from './client'
 import {
   OperationConfiguration,
   OperationName,
@@ -15,6 +23,11 @@ import {
 import { InvalidPayloadError, OperationNotRegistered, QueueNotRegistered } from './errors'
 
 const DEFAULT_QUEUE_NAME = 'default'
+
+interface RouteToTaskOutput<T> {
+  task: Task<T>
+  queueName: QueueName
+}
 
 export interface ClientConfiguration {
   defaultQueue: QueueConfiguration
@@ -99,47 +112,83 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
    * @returns the SQS MessageId and a unique taskId generated on our side
    */
   public async submitTask<T>(input: SubmitTaskInput<T>): Promise<SubmitTaskResponse> {
-    const { operationName, payload } = input
-    const routeConfig = this.routes[operationName]
+    const { queueName, task } = await this._routeToTask<T>(input)
 
-    if (!routeConfig) {
-      throw new OperationNotRegistered(operationName)
-    }
-
-    try {
-      await routeConfig.validate(payload)
-    } catch (error) {
-      const validationError = new InvalidPayloadError('Payload validation failed')
-      validationError.operationName = operationName
-      validationError.err = error
-
-      throw validationError
-    }
-
-    const queueName = routeConfig.queue || DEFAULT_QUEUE_NAME
     const queue = this.queues[queueName]
-    if (!queue) {
-      throw new QueueNotRegistered(queueName)
-    }
-
-    const taskId = uuid.v4()
-    const messageBody: Task<T> = {
-      taskId,
-      operationName,
-      payload
-    }
-
     const sqsResponse = await this.sqsClient
       .sendMessage({
         QueueUrl: queue.queueUrl,
-        MessageBody: JSON.stringify(messageBody)
+        MessageBody: JSON.stringify(task)
       })
       .promise()
 
     return {
       messageId: sqsResponse.MessageId || null,
-      taskId
+      taskId: task.taskId
     }
+  }
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public async submitAllTasks<T = any>(
+    input: SubmitTaskInput<T>[]
+  ): Promise<SubmitAllTasksResponse> {
+    const routableTasks = await Promise.all(
+      input.map((i): Promise<RouteToTaskOutput<T>> => this._routeToTask(i))
+    )
+
+    // Group tasks as messages assigned to their target queue
+    const messagesByQueue: Record<QueueName, SQS.SendMessageBatchRequestEntryList> = {}
+    routableTasks.forEach((routableTask): void => {
+      const { queueName, task } = routableTask
+      if (!messagesByQueue[queueName]) {
+        messagesByQueue[queueName] = []
+      }
+      messagesByQueue[queueName].push({
+        Id: task.taskId,
+        MessageBody: JSON.stringify(task)
+      })
+    })
+
+    // Submit each queue's batch of tasks
+    const responsesByTaskId: Record<string, SQS.SendMessageBatchResultEntry> = {}
+    const failedByTaskId: Record<string, SQS.BatchResultErrorEntry> = {}
+
+    const queueNames = Object.keys(messagesByQueue)
+    const sendPromises = queueNames.map(
+      async (queueName): Promise<void> => {
+        const { queueUrl } = this.queues[queueName]
+        const results = await this.sqsClient
+          .sendMessageBatch({
+            QueueUrl: queueUrl,
+            Entries: messagesByQueue[queueName]
+          })
+          .promise()
+
+        results.Successful.forEach((result): void => {
+          responsesByTaskId[result.Id] = result
+        })
+
+        results.Failed.forEach((result): void => {
+          failedByTaskId[result.Id] = result
+        })
+      }
+    )
+
+    await Promise.all(sendPromises)
+
+    // Use the order of the routableTasks to generate an ordered array of responses
+    const results = routableTasks.map(
+      (routable): BatchSubmitTaskResponseEntry => {
+        const { taskId } = routable.task
+        if (failedByTaskId[taskId]) {
+          return { taskId, status: BatchSubmitTaskStatus.FAILED, error: failedByTaskId[taskId] }
+        }
+
+        return { taskId, status: BatchSubmitTaskStatus.SUCCESSFUL }
+      }
+    )
+
+    return { results }
   }
 
   public generateConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer> {
@@ -159,5 +208,41 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
     })
 
     return consumers
+  }
+
+  private async _routeToTask<T>(input: SubmitTaskInput<T>): Promise<RouteToTaskOutput<T>> {
+    const { operationName, payload } = input
+    const routeConfig = this.routes[operationName]
+
+    if (!routeConfig) {
+      throw new OperationNotRegistered(operationName)
+    }
+
+    try {
+      await routeConfig.validate(payload)
+    } catch (error) {
+      const validationError = new InvalidPayloadError('Payload validation failed')
+      validationError.operationName = operationName
+      validationError.err = error
+
+      throw validationError
+    }
+
+    const queueName = routeConfig.queue || DEFAULT_QUEUE_NAME
+    if (!this.queues[queueName]) {
+      throw new QueueNotRegistered(queueName)
+    }
+
+    const taskId = uuid.v4()
+    const task: Task<T> = {
+      taskId,
+      operationName,
+      payload
+    }
+
+    return {
+      queueName,
+      task
+    }
   }
 }

@@ -6,12 +6,14 @@ import { AsyncTasksClient } from '../sqs-client'
 import { defaultTaskContextProvider, DefaultTaskContext } from '../context'
 import { OperationConfiguration } from '../types'
 import { ExamplePayload, validationFunction, handleFunction } from './test-util'
+import { mixedBatchResponder, successBatchResponder } from './aws-util'
+import { BatchSubmitTaskStatus } from '../client'
 
 describe('AsyncTasksClient', () => {
   let client: AsyncTasksClient
 
-  const examplePayload = {
-    hello: 'world'
+  const examplePayload: ExamplePayload = {
+    shouldSucceed: true
   }
 
   const existingOperation = {
@@ -21,10 +23,12 @@ describe('AsyncTasksClient', () => {
   }
 
   let sendSpy: jest.SpyInstance
+  let sendBatchSpy: jest.SpyInstance
 
   beforeEach(() => {
     AWSMock.setSDKInstance(AWS)
     AWSMock.mock('SQS', 'sendMessage', { MessageId: uuid.v4() })
+    AWSMock.mock('SQS', 'sendMessageBatch', successBatchResponder)
 
     const sqsClient = new AWS.SQS()
     const config = {
@@ -38,6 +42,7 @@ describe('AsyncTasksClient', () => {
     client.registerOperation<ExamplePayload>(existingOperation)
 
     sendSpy = jest.spyOn(sqsClient, 'sendMessage')
+    sendBatchSpy = jest.spyOn(sqsClient, 'sendMessageBatch')
   })
 
   afterEach(() => {
@@ -122,6 +127,59 @@ describe('AsyncTasksClient', () => {
         payload: { shouldSucceed: false }
       })
       await expect(response).rejects.toThrowError('Payload validation failed')
+    })
+  })
+
+  describe('submitAllTasks', () => {
+    const exampleTaskRequest = {
+      operationName: existingOperation.operationName,
+      payload: examplePayload
+    }
+
+    const secondTaskRequest = {
+      ...exampleTaskRequest,
+      payload: {
+        ...examplePayload
+      }
+    }
+
+    it('calls sendMessageBatch once for each assigned queue', async () => {
+      const { results } = await client.submitAllTasks([exampleTaskRequest, secondTaskRequest])
+
+      expect(results.length).toEqual(2)
+      expect(results[0].taskId).toBeDefined()
+      expect(results[0].status).toEqual(BatchSubmitTaskStatus.SUCCESSFUL)
+      expect(results[0].error).toEqual(undefined)
+
+      expect(sendBatchSpy).toBeCalledTimes(1)
+      expect(sendSpy).not.toBeCalled()
+    })
+
+    it('does not call sendMessageBatch if validation of any task fails', async () => {
+      const invalidTaskRequest = {
+        ...exampleTaskRequest,
+        payload: {
+          shouldSucceed: false
+        }
+      }
+
+      const promise = client.submitAllTasks([exampleTaskRequest, invalidTaskRequest])
+
+      await expect(promise).rejects.toThrowError()
+      expect(sendBatchSpy).not.toBeCalled()
+    })
+
+    it('classifies message status based on the errors returned by SQS', async () => {
+      AWSMock.restore('SQS', 'sendMessageBatch')
+      AWSMock.mock('SQS', 'sendMessageBatch', mixedBatchResponder)
+
+      const { results } = await client.submitAllTasks([exampleTaskRequest, secondTaskRequest])
+      expect(results.length).toEqual(2)
+      expect(results[0].status).toEqual(BatchSubmitTaskStatus.FAILED)
+      expect(results[0].error).not.toBeUndefined()
+
+      expect(results[1].status).toEqual(BatchSubmitTaskStatus.SUCCESSFUL)
+      expect(results[1].error).toBeUndefined()
     })
   })
 
