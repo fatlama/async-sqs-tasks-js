@@ -6,6 +6,15 @@ export class InvalidPayloadError extends Error {
   public payload?: any
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   public err?: any
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  public constructor(operationName: string, payload: any, err: any) {
+    super('Payload validation failed')
+    this.name = 'InvalidPayloadError'
+    this.operationName = operationName
+    this.payload = payload
+    this.err = err
+  }
 }
 
 export class MalformedRequestError extends Error {

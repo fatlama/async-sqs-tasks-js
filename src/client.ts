@@ -17,6 +17,31 @@ export interface SubmitTaskResponse {
   taskId: string
 }
 
+export enum BatchSubmitTaskStatus {
+  SUCCESSFUL = 'SUCCESSFUL',
+  FAILED = 'FAILED'
+}
+
+export interface BatchSubmitTaskError {
+  message?: string
+  code?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  error: any
+}
+
+export interface BatchSubmitTaskResponseEntry {
+  taskId: string
+  status: BatchSubmitTaskStatus
+  error?: BatchSubmitTaskError
+}
+
+export interface SubmitAllTasksResponse {
+  /**
+   * An ordered array of responses for each task request submitted
+   */
+  results: BatchSubmitTaskResponseEntry[]
+}
+
 /**
  * An interface representing the operations guaranteed to be present regardless of the SQS task client
  * or the NoopClient
@@ -26,6 +51,7 @@ export interface TaskClient<TContext> {
    * Returns a list of operations registered with the client
    */
   registeredOperations: OperationName[]
+
   /**
    * Register an operation type with the asyncTask client
    *
@@ -47,6 +73,19 @@ export interface TaskClient<TContext> {
    * @throws {InvalidPayloadError} the provided payload did not pass validation
    * @returns the SQS MessageId and a unique taskId generated on our side
    */
-  submitTask<T>(input: SubmitTaskInput<T>): Promise<SubmitTaskResponse>
+  submitTask<TPayload>(input: SubmitTaskInput<TPayload>): Promise<SubmitTaskResponse>
+
+  /**
+   * First validates all payloads and then submits the batch of messages as one call to SQS
+   *
+   * Results will be returned in an array in the same order as the submitted tasks
+   *
+   * @param input An array of tasks to submit
+   */
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  submitAllTasks<TPayload = any>(
+    input: SubmitTaskInput<TPayload>[]
+  ): Promise<SubmitAllTasksResponse>
+
   generateConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer>
 }

@@ -1,6 +1,7 @@
 import { NoopClient } from '../noop-client'
 import { handleFunction, validationFunction, validPayload } from './test-util'
 import { OperationConfiguration } from '../types'
+import { BatchSubmitTaskStatus } from '../client'
 
 describe('NoopClient', () => {
   let client: NoopClient
@@ -9,6 +10,11 @@ describe('NoopClient', () => {
     operationName: 'ExistingOperation',
     handle: handleFunction,
     validate: validationFunction
+  }
+
+  const exampleTaskRequest = {
+    operationName: existingOperation.operationName,
+    payload: validPayload
   }
 
   beforeEach(() => {
@@ -30,11 +36,6 @@ describe('NoopClient', () => {
   })
 
   describe('submitTask', () => {
-    const exampleTaskRequest = {
-      operationName: existingOperation.operationName,
-      payload: validPayload
-    }
-
     it('enqueues the expected message', async () => {
       const response = await client.submitTask(exampleTaskRequest)
 
@@ -53,6 +54,34 @@ describe('NoopClient', () => {
         payload: { shouldSucceed: false }
       })
       await expect(response).rejects.toThrowError('Payload validation failed')
+    })
+  })
+
+  describe('submitAllTasks', () => {
+    const secondTaskRequest = {
+      ...exampleTaskRequest,
+      payload: validPayload
+    }
+
+    it('returns an entry for each submitted message', async () => {
+      const { results } = await client.submitAllTasks([exampleTaskRequest, secondTaskRequest])
+
+      expect(results.length).toEqual(2)
+      expect(results[0].taskId).toBeDefined()
+      expect(results[0].status).toEqual(BatchSubmitTaskStatus.SUCCESSFUL)
+      expect(results[0].error).toEqual(undefined)
+    })
+    it('throws the exception if validation of any task fails', async () => {
+      const invalidTaskRequest = {
+        ...exampleTaskRequest,
+        payload: {
+          shouldSucceed: false
+        }
+      }
+
+      const promise = client.submitAllTasks([exampleTaskRequest, invalidTaskRequest])
+
+      await expect(promise).rejects.toThrowError()
     })
   })
 
