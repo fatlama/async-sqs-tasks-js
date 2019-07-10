@@ -27,23 +27,6 @@ export class NoopClient<TContext = DefaultTaskContext> implements TaskClient<TCo
   }
 
   public async submitTask<T>(input: SubmitTaskInput<T>): Promise<SubmitTaskResponse> {
-    const { operationName, payload } = input
-    const routeConfig = this._routes[operationName]
-
-    if (!routeConfig) {
-      throw new OperationNotRegistered(operationName)
-    }
-
-    try {
-      await routeConfig.validate(payload)
-    } catch (error) {
-      const validationError = new InvalidPayloadError('Payload validation failed')
-      validationError.operationName = operationName
-      validationError.err = error
-
-      throw validationError
-    }
-
     const taskId = await this._routeToTask(input)
 
     return {
@@ -82,11 +65,7 @@ export class NoopClient<TContext = DefaultTaskContext> implements TaskClient<TCo
     try {
       await routeConfig.validate(payload)
     } catch (error) {
-      const validationError = new InvalidPayloadError('Payload validation failed')
-      validationError.operationName = operationName
-      validationError.err = error
-
-      throw validationError
+      throw new InvalidPayloadError(operationName, payload, error)
     }
 
     return 'not-a-valid-task-id'

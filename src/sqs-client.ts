@@ -5,6 +5,7 @@ import { DefaultTaskContext } from './context'
 import { createTaskConsumer } from './task-consumer'
 import {
   BatchSubmitTaskResponseEntry,
+  BatchSubmitTaskError,
   BatchSubmitTaskStatus,
   GetConsumersInput,
   SubmitAllTasksResponse,
@@ -151,7 +152,7 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
 
     // Submit each queue's batch of tasks
     const responsesByTaskId: Record<string, SQS.SendMessageBatchResultEntry> = {}
-    const failedByTaskId: Record<string, SQS.BatchResultErrorEntry> = {}
+    const failedByTaskId: Record<string, BatchSubmitTaskError> = {}
 
     const queueNames = Object.keys(messagesByQueue)
     const sendPromises = queueNames.map(
@@ -169,7 +170,12 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
         })
 
         results.Failed.forEach((result): void => {
-          failedByTaskId[result.Id] = result
+          const error: BatchSubmitTaskError = {
+            message: result.Message,
+            code: result.Code,
+            error: result
+          }
+          failedByTaskId[result.Id] = error
         })
       }
     )
@@ -221,11 +227,7 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
     try {
       await routeConfig.validate(payload)
     } catch (error) {
-      const validationError = new InvalidPayloadError('Payload validation failed')
-      validationError.operationName = operationName
-      validationError.err = error
-
-      throw validationError
+      throw new InvalidPayloadError(operationName, payload, error)
     }
 
     const queueName = routeConfig.queue || DEFAULT_QUEUE_NAME

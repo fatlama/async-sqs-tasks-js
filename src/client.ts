@@ -22,11 +22,17 @@ export enum BatchSubmitTaskStatus {
   FAILED = 'FAILED'
 }
 
+export interface BatchSubmitTaskError {
+  message?: string
+  code?: string
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  error: any
+}
+
 export interface BatchSubmitTaskResponseEntry {
   taskId: string
   status: BatchSubmitTaskStatus
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  error?: any
+  error?: BatchSubmitTaskError
 }
 
 export interface SubmitAllTasksResponse {
@@ -67,7 +73,7 @@ export interface TaskClient<TContext> {
    * @throws {InvalidPayloadError} the provided payload did not pass validation
    * @returns the SQS MessageId and a unique taskId generated on our side
    */
-  submitTask<T>(input: SubmitTaskInput<T>): Promise<SubmitTaskResponse>
+  submitTask<TPayload>(input: SubmitTaskInput<TPayload>): Promise<SubmitTaskResponse>
 
   /**
    * First validates all payloads and then submits the batch of messages as one call to SQS
@@ -77,8 +83,8 @@ export interface TaskClient<TContext> {
    * @param input An array of tasks to submit
    */
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  submitAllTasks<T extends Record<string, any>>(
-    input: SubmitTaskInput<T>[]
+  submitAllTasks<TPayload = any>(
+    input: SubmitTaskInput<TPayload>[]
   ): Promise<SubmitAllTasksResponse>
 
   generateConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer>
