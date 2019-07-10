@@ -72,6 +72,45 @@ const { taskId } = await client.submitTask({
 // taskId: uuid
 ```
 
+### Submitting Multiple Tasks
+
+To save on network calls (and their resulting potential network failures) you can also use client.submitAllTasks to validate and then submit a batch of tasks to their assigned queues.
+
+```
+const { results } = await client.submitAllTasks([
+  {
+    operationName: 'SendEmail',
+    payload: {
+      recipient: 'foo@bar.com'
+    }
+  },
+  {
+    operationName: 'SendSMS',
+    payload: {
+      recipient: 'foo@bar.com'
+    }
+  },
+  {
+    operationName: 'SendPush',
+    payload: {
+      recipientId: 'user.v1.1234567'
+    }
+  }
+])
+
+> results
+[
+  { taskId: $uuid, status: BatchSubmitTaskStatus.SUCCESSFUL, error: undefined },
+  { taskId: $uuid, status: BatchSubmitTaskStatus.FAILED, error: { code: $AWSCODE, message: $AWSMESSAGE, error: $SQSERROR }},
+  { taskId: $uuid, status: BatchSubmitTaskStatus.SUCCESSFUL, error: undefined }
+]
+```
+
+Notes:
+
+* Each entry in results will be ordered according to the order of the inputs
+* The same restrictions for SQS messages apply here, notable that the total payload must not exceed 256 KB
+
 ### Processing Tasks
 
 Enqueued tasks require a worker to fetch, route, and handle the tasks. This library uses `sqs-consumer` to handle fetching tasks from SQS. The `generateConsumers` method will configure a hashmap of Consumer objects with the configured queueUrl, sqs client, and a handler function using the provided `contextProvider`.
