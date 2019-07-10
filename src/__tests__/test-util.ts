@@ -6,6 +6,7 @@ import { Task } from '../types'
 export interface ExamplePayload {
   testName?: string
   shouldSucceed: boolean
+  failOnSend?: boolean
 }
 
 export const validationFunction = async (payload: ExamplePayload): Promise<void> => {

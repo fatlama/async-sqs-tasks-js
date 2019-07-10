@@ -173,7 +173,15 @@ describe('AsyncTasksClient', () => {
       AWSMock.restore('SQS', 'sendMessageBatch')
       AWSMock.mock('SQS', 'sendMessageBatch', mixedBatchResponder)
 
-      const { results } = await client.submitAllTasks([exampleTaskRequest, secondTaskRequest])
+      const failOnSendRequest = {
+        ...exampleTaskRequest,
+        payload: {
+          shouldSucceed: true,
+          failOnSend: true
+        }
+      }
+
+      const { results } = await client.submitAllTasks([failOnSendRequest, exampleTaskRequest])
       expect(results.length).toEqual(2)
       expect(results[0].status).toEqual(BatchSubmitTaskStatus.FAILED)
       expect(results[0].error).not.toBeUndefined()

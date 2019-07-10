@@ -1,5 +1,7 @@
 import { SQS } from 'aws-sdk'
 import * as uuid from 'uuid'
+import { Task } from '../types'
+import { ExamplePayload } from './test-util'
 
 export function mixedBatchResponder(
   params: SQS.SendMessageBatchRequest,
@@ -8,8 +10,11 @@ export function mixedBatchResponder(
 ): void {
   const success: SQS.SendMessageBatchResultEntryList = []
   const failed: SQS.BatchResultErrorEntryList = []
-  params.Entries.forEach((entry, i): void => {
-    if (i % 2 === 0) {
+
+  params.Entries.forEach((entry): void => {
+    const task: Task<ExamplePayload> = JSON.parse(entry.MessageBody)
+
+    if (task.payload.failOnSend) {
       failed.push({
         Id: entry.Id,
         SenderFault: true,
