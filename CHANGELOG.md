@@ -1,3 +1,8 @@
+## v0.2.0 (2019-07-10)
+
+* Add TaskClient.submitAllTasks method to send a batch of requests
+* Add MIT license (hello world! 👋)
+
 ## v0.1.0 (2019-07-02)
 
 * Add TaskClient abstract interface
