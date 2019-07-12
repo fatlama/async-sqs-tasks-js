@@ -10,6 +10,15 @@ export interface GetConsumersInput<TContext = DefaultTaskContext> {
 export interface SubmitTaskInput<T> {
   operationName: string
   payload: T
+
+  /**
+   * Number of seconds to wait before making the message visible. Defaults to 0
+   *
+   * Max allowed value by SQS is 900 (15 minutes)
+   *
+   * More Info: https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html
+   */
+  delaySeconds?: number
 }
 
 export interface SubmitTaskResponse {

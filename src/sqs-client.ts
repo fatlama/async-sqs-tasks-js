@@ -114,14 +114,15 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
    */
   public async submitTask<T>(input: SubmitTaskInput<T>): Promise<SubmitTaskResponse> {
     const { queueName, task } = await this._routeToTask<T>(input)
-
     const queue = this.queues[queueName]
-    const sqsResponse = await this.sqsClient
-      .sendMessage({
-        QueueUrl: queue.queueUrl,
-        MessageBody: JSON.stringify(task)
-      })
-      .promise()
+
+    const message: SQS.Types.SendMessageRequest = {
+      QueueUrl: queue.queueUrl,
+      MessageBody: JSON.stringify(task),
+      DelaySeconds: input.delaySeconds
+    }
+
+    const sqsResponse = await this.sqsClient.sendMessage(message).promise()
 
     return {
       messageId: sqsResponse.MessageId || null,
@@ -139,14 +140,15 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
 
     // Group tasks as messages assigned to their target queue
     const messagesByQueue: Record<QueueName, SQS.SendMessageBatchRequestEntryList> = {}
-    routableTasks.forEach((routableTask): void => {
+    routableTasks.forEach((routableTask, i): void => {
       const { queueName, task } = routableTask
       if (!messagesByQueue[queueName]) {
         messagesByQueue[queueName] = []
       }
       messagesByQueue[queueName].push({
         Id: task.taskId,
-        MessageBody: JSON.stringify(task)
+        MessageBody: JSON.stringify(task),
+        DelaySeconds: input[i].delaySeconds
       })
     })
 

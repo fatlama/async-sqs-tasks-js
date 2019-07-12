@@ -11,6 +11,8 @@ import { OperationConfiguration, OperationName, OperationRouter, QueueName } fro
 import { DefaultTaskContext } from './context'
 import { InvalidPayloadError, OperationNotRegistered } from './errors'
 
+const MAX_SQS_VISIBILITY_DELAY_SECS = 900
+
 export class NoopClient<TContext = DefaultTaskContext> implements TaskClient<TContext> {
   private _routes: OperationRouter
 
@@ -66,6 +68,11 @@ export class NoopClient<TContext = DefaultTaskContext> implements TaskClient<TCo
       await routeConfig.validate(payload)
     } catch (error) {
       throw new InvalidPayloadError(operationName, payload, error)
+    }
+
+    // Basic sanity test to help developers out if they are using the NoopClient in development
+    if (input.delaySeconds && input.delaySeconds > MAX_SQS_VISIBILITY_DELAY_SECS) {
+      throw new TypeError('DelaySeconds too large. See SQS SendMessage documentation')
     }
 
     return 'not-a-valid-task-id'
