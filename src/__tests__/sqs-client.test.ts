@@ -116,6 +116,19 @@ describe('AsyncTasksClient', () => {
       )
     })
 
+    it('allows a delaySeconds to be provided', async () => {
+      const exampleWithDelay = {
+        ...exampleTaskRequest,
+        delaySeconds: 30
+      }
+      await client.submitTask(exampleWithDelay)
+      expect(sendSpy).toBeCalledWith(
+        expect.objectContaining({
+          DelaySeconds: 30
+        })
+      )
+    })
+
     it('throws an OperationNotRegistered error if an invalid operationName is specified', async () => {
       const response = client.submitTask({ ...exampleTaskRequest, operationName: 'does not exist' })
       await expect(response).rejects.toThrowError('No handler registered for operation')
@@ -143,6 +156,12 @@ describe('AsyncTasksClient', () => {
       }
     }
 
+    const delayedRequest = {
+      operationName: existingOperation.operationName,
+      payload: examplePayload,
+      delaySeconds: 30
+    }
+
     it('calls sendMessageBatch once for each assigned queue', async () => {
       const { results } = await client.submitAllTasks([exampleTaskRequest, secondTaskRequest])
 
@@ -153,6 +172,24 @@ describe('AsyncTasksClient', () => {
 
       expect(sendBatchSpy).toBeCalledTimes(1)
       expect(sendSpy).not.toBeCalled()
+    })
+
+    it('passes down delaySeconds for requests', async () => {
+      await client.submitAllTasks([exampleTaskRequest, delayedRequest])
+
+      expect(sendBatchSpy).toBeCalledTimes(1)
+      const input: AWS.SQS.SendMessageBatchRequest = sendBatchSpy.mock.calls[0][0]
+
+      expect(input.Entries[0]).toEqual(
+        expect.objectContaining({
+          DelaySeconds: undefined
+        })
+      )
+      expect(input.Entries[1]).toEqual(
+        expect.objectContaining({
+          DelaySeconds: delayedRequest.delaySeconds
+        })
+      )
     })
 
     it('does not call sendMessageBatch if validation of any task fails', async () => {

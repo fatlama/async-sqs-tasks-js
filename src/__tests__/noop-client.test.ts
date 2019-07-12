@@ -55,6 +55,14 @@ describe('NoopClient', () => {
       })
       await expect(response).rejects.toThrowError('Payload validation failed')
     })
+
+    it('throws a TypeError if a delaySeconds of >900 is provided', async () => {
+      const response = client.submitTask({
+        ...exampleTaskRequest,
+        delaySeconds: 901
+      })
+      await expect(response).rejects.toThrowError(/DelaySeconds too large/)
+    })
   })
 
   describe('submitAllTasks', () => {
@@ -71,6 +79,7 @@ describe('NoopClient', () => {
       expect(results[0].status).toEqual(BatchSubmitTaskStatus.SUCCESSFUL)
       expect(results[0].error).toEqual(undefined)
     })
+
     it('throws the exception if validation of any task fails', async () => {
       const invalidTaskRequest = {
         ...exampleTaskRequest,
@@ -82,6 +91,16 @@ describe('NoopClient', () => {
       const promise = client.submitAllTasks([exampleTaskRequest, invalidTaskRequest])
 
       await expect(promise).rejects.toThrowError()
+    })
+
+    it('throws a TypeError if a delaySeconds of >900 is provided', async () => {
+      const response = client.submitAllTasks([
+        {
+          ...exampleTaskRequest,
+          delaySeconds: 901
+        }
+      ])
+      await expect(response).rejects.toThrowError(/DelaySeconds too large/)
     })
   })
 
