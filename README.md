@@ -72,6 +72,20 @@ const { taskId } = await client.submitTask({
 // taskId: uuid
 ```
 
+You can optionally also specify `delaySeconds`, which will map to SQS's `DelaySeconds` option (see
+[the SQS documentation](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessage.html) for
+more info). SQS defaults to the queue's configuration if no value is specified (usually 0 or immediately visible).
+
+```
+const { taskId } = await client.submitTask({
+  operationName: 'SendEmail',
+  payload: {
+    recipient: 'foo@bar.com'
+  },
+  delaySeconds: 300
+})
+```
+
 ### Submitting Multiple Tasks
 
 To save on network calls (and their resulting potential network failures) you can also use client.submitAllTasks to validate and then submit a batch of tasks to their assigned queues.
@@ -82,7 +96,8 @@ const { results } = await client.submitAllTasks([
     operationName: 'SendEmail',
     payload: {
       recipient: 'foo@bar.com'
-    }
+    },
+    delaySeconds: 300
   },
   {
     operationName: 'SendSMS',
@@ -110,6 +125,9 @@ Notes:
 
 * Each entry in results will be ordered according to the order of the inputs
 * The same restrictions for SQS messages apply here, notable that the total payload must not exceed 256 KB
+
+As with submitTask you can optionally specify `delaySeconds` to delay visibility of the SQS message. See [the SQS
+documentation](https://docs.aws.amazon.com/AWSSimpleQueueService/latest/APIReference/API_SendMessageBatch.html) for more information.
 
 ### Processing Tasks
 

@@ -1,3 +1,8 @@
+## v0.3.0 (2019-07-12)
+
+* Allow delaySeconds to be passed in SubmitTaskInput
+* Upgrade security dependencies (lodash)
+
 ## v0.2.0 (2019-07-10)
 
 * Add TaskClient.submitAllTasks method to send a batch of requests
