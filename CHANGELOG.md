@@ -1,3 +1,8 @@
+## 0.4.0 (2019-08-14)
+
+* Add TaskClient.generateConsumer() method to retrieve a Consumer for the specified queueName
+* Add SQSClient.queueNames getter for retrieving a list of registered queue names
+
 ## v0.3.0 (2019-07-12)
 
 * Allow delaySeconds to be passed in SubmitTaskInput

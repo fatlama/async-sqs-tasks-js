@@ -150,6 +150,25 @@ defaultConsumer.start()
 
 More information about sqs-consumer: https://github.com/bbc/sqs-consumer
 
+#### Retrieving a specific queue's consumer
+
+You can also request a Consumer for a specific queue by using `client.generateConsumer`. This is useful for situations where you want to retrieve a specific consumer for splitting workloads or for creating multiple consumers for a particular queue on a single application instance, allowing for parallelized workload processing.
+
+```
+const queueName = 'default'
+const contextProvider = async (sqsMessage: AWS.SQS.Message) => {
+  return {
+    emailer: new Emailer(),
+    sqsMessage
+  }
+}
+const defaultConsumer = client.generateConsumer({ queueName, contextProvider })
+defaultConsumer.on('processing_error', (err, message) => {
+  // throw exceptions, stat, etc
+})
+defaultConsumer.start()
+```
+
 ## Testing
 
 This library also provides a NoopClient that can be used for unit testing.
