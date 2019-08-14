@@ -1,3 +1,4 @@
+import { Consumer } from 'sqs-consumer'
 import { NoopClient } from '../noop-client'
 import { handleFunction, validationFunction, validPayload } from './test-util'
 import { OperationConfiguration } from '../types'
@@ -101,6 +102,13 @@ describe('NoopClient', () => {
         }
       ])
       await expect(response).rejects.toThrowError(/DelaySeconds too large/)
+    })
+  })
+
+  describe('generateConsumer', () => {
+    it('returns a defunct Consumer', () => {
+      const consumer = client.generateConsumer()
+      expect(consumer).toBeInstanceOf(Consumer)
     })
   })
 

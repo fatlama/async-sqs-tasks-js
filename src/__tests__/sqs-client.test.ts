@@ -35,6 +35,11 @@ describe('AsyncTasksClient', () => {
       defaultQueue: {
         queueUrl: 'https://foobar.com/test-queue-url'
       },
+      queues: {
+        low: {
+          queueUrl: 'https://foobar.com/low-priority-queue-url'
+        }
+      },
       sqsClient
     }
 
@@ -48,6 +53,20 @@ describe('AsyncTasksClient', () => {
   afterEach(() => {
     AWSMock.restore()
     jest.clearAllMocks()
+  })
+
+  describe('registeredOperations', () => {
+    it('returns a list of registered operation names', () => {
+      expect(client.registeredOperations).toEqual(
+        expect.arrayContaining([existingOperation.operationName])
+      )
+    })
+  })
+
+  describe('queueNames', () => {
+    it('returns a list of queueNames, default included', () => {
+      expect(client.queueNames).toEqual(expect.arrayContaining(['default', 'low']))
+    })
   })
 
   describe('registerOperation', () => {
@@ -225,6 +244,25 @@ describe('AsyncTasksClient', () => {
 
       expect(results[1].status).toEqual(BatchSubmitTaskStatus.SUCCESSFUL)
       expect(results[1].error).toBeUndefined()
+    })
+  })
+
+  describe('generateConsumer', () => {
+    it('returns a configured consumer for the queueName provided', () => {
+      const consumer = client.generateConsumer({
+        queueName: 'default',
+        contextProvider: defaultTaskContextProvider
+      })
+      expect(consumer).toBeInstanceOf(Consumer)
+    })
+
+    it('throws a QueueNotConfigured for an invalid queueName', () => {
+      expect(() =>
+        client.generateConsumer({
+          queueName: 'not-a-real-queue',
+          contextProvider: defaultTaskContextProvider
+        })
+      ).toThrowError('No queue configured for queueName')
     })
   })
 

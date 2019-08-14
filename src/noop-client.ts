@@ -52,6 +52,15 @@ export class NoopClient<TContext = DefaultTaskContext> implements TaskClient<TCo
     return { results }
   }
 
+  public generateConsumer(): Consumer {
+    return new Consumer({
+      queueUrl: 'http://localhost/no-op-client',
+      handleMessage: async (): Promise<void> => {
+        'handleMessage'
+      }
+    })
+  }
+
   public generateConsumers(): Record<QueueName, Consumer> {
     return {}
   }
