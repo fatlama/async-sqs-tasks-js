@@ -7,6 +7,7 @@ import {
   BatchSubmitTaskResponseEntry,
   BatchSubmitTaskError,
   BatchSubmitTaskStatus,
+  GetConsumerInput,
   GetConsumersInput,
   SubmitAllTasksResponse,
   SubmitTaskInput,
@@ -65,6 +66,10 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
 
   public get registeredOperations(): OperationName[] {
     return Object.keys(this.routes)
+  }
+
+  public get queueNames(): QueueName[] {
+    return Object.keys(this.queues)
   }
 
   /**
@@ -199,20 +204,35 @@ export class AsyncTasksClient<TContext = DefaultTaskContext> implements TaskClie
     return { results }
   }
 
+  /**
+   * Returns a configured SQS Consumer for the provided queueName and context provider
+   * @param input At a minimum the contextProvider and queueName
+   */
+  public generateConsumer(input: GetConsumerInput<TContext>): Consumer {
+    const { queueName, contextProvider, consumerOpts } = input
+
+    const config = this.queues[queueName]
+    if (!config) {
+      throw new QueueNotRegistered(queueName)
+    }
+
+    return createTaskConsumer<TContext>({
+      routes: this.routes,
+      contextProvider,
+      consumerOptions: {
+        sqs: this.sqsClient,
+        ...consumerOpts,
+        queueUrl: config.queueUrl
+      }
+    })
+  }
+
   public generateConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer> {
     const queueNames = Object.keys(this.queues)
     const consumers: Record<QueueName, Consumer> = {}
 
     queueNames.forEach((queueName): void => {
-      consumers[queueName] = createTaskConsumer<TContext>({
-        routes: this.routes,
-        contextProvider: input.contextProvider,
-        consumerOptions: {
-          sqs: this.sqsClient,
-          ...input.consumerOpts,
-          queueUrl: this.queues[queueName].queueUrl
-        }
-      })
+      consumers[queueName] = this.generateConsumer({ ...input, queueName })
     })
 
     return consumers

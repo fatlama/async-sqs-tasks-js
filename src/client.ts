@@ -7,6 +7,11 @@ export interface GetConsumersInput<TContext = DefaultTaskContext> {
   consumerOpts?: ConsumerOptions
 }
 
+export interface GetConsumerInput<TContext = DefaultTaskContext>
+  extends GetConsumersInput<TContext> {
+  queueName: string
+}
+
 export interface SubmitTaskInput<T> {
   operationName: string
   payload: T
@@ -96,5 +101,6 @@ export interface TaskClient<TContext> {
     input: SubmitTaskInput<TPayload>[]
   ): Promise<SubmitAllTasksResponse>
 
+  generateConsumer(input: GetConsumerInput<TContext>): Consumer
   generateConsumers(input: GetConsumersInput<TContext>): Record<QueueName, Consumer>
 }
